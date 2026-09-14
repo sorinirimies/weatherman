@@ -24,6 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.tag || github.ref_name }}
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -53,6 +54,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.tag || github.ref_name }}
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -68,8 +70,9 @@ jobs:
       - name: Package binaries
         shell: bash
         run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
           BIN_DIR="target/${{ matrix.target }}/release"
-          PKG="weatherman-${GITHUB_REF_NAME}-${{ matrix.suffix }}"
+          PKG="weatherman-${TAG}-${{ matrix.suffix }}"
           mkdir -p "$PKG"
           cp "$BIN_DIR/weatherman" "$PKG/" 2>/dev/null || true
           cp "$BIN_DIR/weatherman-tui" "$PKG/" 2>/dev/null || true
@@ -88,6 +91,7 @@ jobs:
       - name: Create / update GitHub release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
           body_path: ${{ runner.os == 'Linux' && 'RELEASE_NOTES.md' || '' }}
           files: |
             weatherman-*.tar.gz
@@ -98,9 +102,11 @@ jobs:
     name: Publish to crates.io
     needs: release
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.ref_name, '-') }}
+    if: ${{ !contains(inputs.tag || github.ref_name, '-') }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
       - uses: dtolnay/rust-toolchain@stable
       - name: Install system deps (Iced)
         run: sudo apt-get update && sudo apt-get install -y libxkbcommon-dev

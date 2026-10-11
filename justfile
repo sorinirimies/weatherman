@@ -315,3 +315,7 @@ release version: (bump version)
     @echo "Pushing release v{{ version }} to GitHub…"
     git push --follow-tags origin main
     @echo "✅ Release v{{ version }} pushed — Release workflow will trigger automatically."
+
+# Security: dependency vulnerability scan (needs `cargo install cargo-audit`)
+audit:
+    cargo audit

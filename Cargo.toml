@@ -26,7 +26,7 @@ chrono      = { version = "0.4", features = ["serde"] }
 tokio       = { version = "1", features = ["full"] }
 reqwest     = { version = "0.13", features = ["json"] }
 urlencoding = "2.1"
-dirs        = "6"
+dirs        = "7"
 strum       = { version = "0.28", features = ["derive"] }
 strum_macros = "0.28"
 futures     = "0.3"

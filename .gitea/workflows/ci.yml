@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: fmt · clippy · test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Install system deps (Iced)
+        run: sudo apt-get update && sudo apt-get install -y libxkbcommon-dev
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - run: cargo test --workspace --all-features
+      - run: cargo build --release -p weatherman -p weatherman-tui
+
+  nu-tests:
+    name: nushell script tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Nushell
+        run: |
+          set -euo pipefail
+          curl -sSL -o nu.tar.gz "https://github.com/nushell/nushell/releases/download/0.111.0/nu-0.111.0-x86_64-unknown-linux-musl.tar.gz"
+          tar -xzf nu.tar.gz
+          sudo mv nu-0.111.0-x86_64-unknown-linux-musl/nu /usr/local/bin/nu
+          nu --version
+      - run: nu scripts/tests/run_all.nu

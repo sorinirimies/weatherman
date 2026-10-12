@@ -3,7 +3,7 @@
 # weatherman — Bump workspace version
 # ──────────────────────────────────────────────────────────────────────────────
 # Usage:
-#   nu scripts/bump_version.nu [--yes] <new_version>
+#   nu scripts/bump_version.nu [--yes] [--skip-checks] <new_version>
 #
 # What it does:
 #   1. Validates the supplied semantic version string.
@@ -63,6 +63,7 @@ def update_core_dep_version [version: string] {
 def main [
     new_version: string,  # New version in X.Y.Z format
     --yes (-y),           # Skip confirmation prompt (non-interactive)
+    --skip-checks,        # Skip fmt/clippy/test (caller already ran the quality gate)
 ] {
     print ""
     print $"(ansi cyan)══════════════════════════════════════════════════════════════(ansi reset)"
@@ -86,17 +87,20 @@ def main [
     update_workspace_version $new_version
     update_core_dep_version $new_version
 
-    print ""
-    print $"(ansi cyan)── cargo fmt ───────────────────────────────────────────────(ansi reset)"
-    run-external "cargo" "fmt" "--all"
+    if not $skip_checks {
+        print ""
+        print $"(ansi cyan)── cargo fmt ───────────────────────────────────────────────(ansi reset)"
+        run-external "cargo" "fmt" "--all"
 
-    print ""
-    print $"(ansi cyan)── cargo clippy ────────────────────────────────────────────(ansi reset)"
-    run-external "cargo" "clippy" "--workspace" "--all-targets" "--" "-D" "warnings"
+        print ""
+        print $"(ansi cyan)── cargo clippy ────────────────────────────────────────────(ansi reset)"
+        run-external "cargo" "clippy" "--workspace" "--all-targets" "--" "-D" "warnings"
 
-    print ""
-    print $"(ansi cyan)── cargo test ──────────────────────────────────────────────(ansi reset)"
-    run-external "cargo" "test" "--workspace"
+        print ""
+        print $"(ansi cyan)── cargo test ──────────────────────────────────────────────(ansi reset)"
+        run-external "cargo" "test" "--workspace"
+
+    }
 
     print ""
     print $"(ansi cyan)── cargo update ────────────────────────────────────────────(ansi reset)"

@@ -1,4 +1,10 @@
 # cargo-audit configuration. Vulnerabilities always fail; unsound/unmaintained
 # are reported as warnings.
 [advisories]
-ignore = []   # add "RUSTSEC-YYYY-NNNN" with a justification comment
+ignore = [
+  # quick-xml 0.39 is only used by wayland-scanner (build-time proc-macro, parses
+  # trusted wayland protocol XML shipped with the crate). Not reachable at runtime.
+  # Remove once wayland-scanner moves to quick-xml >=0.41.
+  "RUSTSEC-2026-0194",
+  "RUSTSEC-2026-0195",
+]

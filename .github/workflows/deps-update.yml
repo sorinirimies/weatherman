@@ -58,7 +58,7 @@ jobs:
         id: upgrade
         run: |
           set -o pipefail
-          cargo upgrade --workspace --incompatible allow 2>&1 | tee /tmp/upgrade.log
+          cargo upgrade --incompatible allow 2>&1 | tee /tmp/upgrade.log
           cargo update --verbose 2>&1 | tee -a /tmp/upgrade.log
 
       # `cargo update`/`cargo upgrade` should only ever move dependency

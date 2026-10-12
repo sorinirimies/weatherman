@@ -284,22 +284,83 @@ outdated:
     cargo outdated
 
 # ── Git remotes & pushing ────────────────────────────────────────────────────
+# weatherman lives on GitHub (origin) and the Gitea Starscream instance. Every
+# *-all recipe loops over REMOTES and keeps going when one fails.
 
-# Show all configured remotes
-remotes:
-    @git remote -v
+REMOTES := "origin gitea-starscream"
 
 # Push the current branch to GitHub (origin)
 push:
     git push origin main
 
+# Push the current branch to Gitea Starscream
+push-gitea-starscream:
+    git push gitea-starscream main
+
+# Push the current branch to every remote (continues on failure)
+push-all:
+    #!/usr/bin/env sh
+    failed=""
+    for r in {{ REMOTES }}; do
+        git push "$r" main || failed="$failed $r"
+    done
+    if [ -n "$failed" ]; then echo "⚠️  Failed to push to:$failed"; exit 1; fi
+    echo "✅ Pushed to: {{ REMOTES }}"
+
+# Force-push the current branch to every remote (leases are NOT used — be sure!)
+push-all-force:
+    #!/usr/bin/env sh
+    failed=""
+    for r in {{ REMOTES }}; do
+        git push --force "$r" main || failed="$failed $r"
+    done
+    if [ -n "$failed" ]; then echo "⚠️  Failed to force-push to:$failed"; exit 1; fi
+    echo "✅ Force-pushed to: {{ REMOTES }}"
+
 # Pull the current branch from GitHub (origin)
 pull:
     git pull origin main
 
+# Pull the current branch from Gitea Starscream
+pull-gitea-starscream:
+    git pull gitea-starscream main
+
+# Pull the current branch from every remote (continues on failure)
+pull-all:
+    #!/usr/bin/env sh
+    failed=""
+    for r in {{ REMOTES }}; do
+        git pull "$r" main || failed="$failed $r"
+    done
+    if [ -n "$failed" ]; then echo "⚠️  Failed to pull from:$failed"; exit 1; fi
+    echo "✅ Pulled from: {{ REMOTES }}"
+
 # Push all tags to GitHub
 push-tags:
     git push origin --tags
+
+# Push all tags to every remote (continues on failure)
+push-tags-all:
+    #!/usr/bin/env sh
+    failed=""
+    for r in {{ REMOTES }}; do
+        git push "$r" --tags || failed="$failed $r"
+    done
+    if [ -n "$failed" ]; then echo "⚠️  Failed to push tags to:$failed"; exit 1; fi
+    echo "✅ Tags pushed to: {{ REMOTES }}"
+
+# Force-sync Gitea Starscream with GitHub (main + tags)
+sync-gitea-starscream:
+    git push gitea-starscream main --force
+    git push gitea-starscream --tags --force
+    @echo "✅ Gitea Starscream force-synced."
+
+# Add the Gitea Starscream remote if it is missing
+setup-remotes:
+    #!/usr/bin/env sh
+    git remote get-url origin >/dev/null 2>&1 || git remote add origin git@github.com:sorinirimies/weatherman.git
+    git remote get-url gitea-starscream >/dev/null 2>&1 || git remote add gitea-starscream gitea@192.168.1.44:sorin/weatherman.git
+    git remote -v
 
 # ── Release workflow ──────────────────────────────────────────────────────────
 
@@ -310,11 +371,32 @@ release-preview: _check-git-cliff _check-nu
     @echo "Unreleased commits:"
     @git-cliff --unreleased
 
-# Bump, commit, tag, then push to GitHub — triggers the Release workflow.
+# Bump, commit, tag, then push to every remote — triggers the Release workflows.
 release version: (bump version)
-    @echo "Pushing release v{{ version }} to GitHub…"
+    #!/usr/bin/env sh
+    failed=""
+    for r in {{ REMOTES }}; do
+        git push --follow-tags "$r" main || failed="$failed $r"
+    done
+    if [ -n "$failed" ]; then echo "⚠️  Release v{{ version }} failed to push to:$failed"; exit 1; fi
+    echo "✅ Release v{{ version }} pushed to: {{ REMOTES }}"
+
+# Bump, commit, tag, then push to GitHub only.
+release-github version: (bump version)
     git push --follow-tags origin main
-    @echo "✅ Release v{{ version }} pushed — Release workflow will trigger automatically."
+
+# Bump, commit, tag, then push to Gitea Starscream only.
+release-gitea-starscream version: (bump version)
+    git push --follow-tags gitea-starscream main
+
+# Push latest commit and tags to every remote (no bump).
+push-release-all: check-all
+    #!/usr/bin/env sh
+    failed=""
+    for r in {{ REMOTES }}; do
+        git push --follow-tags "$r" main || failed="$failed $r"
+    done
+    if [ -n "$failed" ]; then echo "⚠️  Failed to push to:$failed"; exit 1; fi
 
 # Security: dependency vulnerability scan (needs `cargo install cargo-audit`)
 audit:

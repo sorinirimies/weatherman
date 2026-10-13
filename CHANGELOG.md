@@ -2,9 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [0.5.1] - 2026-10-13
+### 🐛 Bug Fixes
+- patch h2/rustls, ignore build-only quick-xml advisories, fix cargo upgrade flag; justfile multi-remote
 ### 📚 Documentation
 - normalise historical crate names to weatherman in changelog
+### 🔄 CI
+- replace hustcer/setup-nu with direct binary install
+- add nightly dependency-update + auto-release pipeline
+- add cargo-audit workflow and just audit recipe
+### 🔧 Chores
+- point repository URLs at renamed github repo (weatherman)
+**Full Changelog**: https://github.com/sorinirimies/weatherman/compare/v0.5.0...v0.5.1
 ## [0.5.0] - 2026-07-13
 ### ✨ Features
 - add DayDetail view-model and persistent AppSettings

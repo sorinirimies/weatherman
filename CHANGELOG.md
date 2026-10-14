@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.2] - 2026-10-14
+### 📚 Documentation
+- add audit badge
+- add audit badge
+**Full Changelog**: https://github.com/sorinirimies/weatherman/compare/v0.5.1...v0.5.2
 ## [0.5.1] - 2026-10-13
 ### 🐛 Bug Fixes
 - patch h2/rustls, ignore build-only quick-xml advisories, fix cargo upgrade flag; justfile multi-remote

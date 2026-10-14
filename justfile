@@ -401,3 +401,7 @@ push-release-all: check-all
 # Security: dependency vulnerability scan (needs `cargo install cargo-audit`)
 audit:
     cargo audit
+
+# Security: licenses/advisories/bans/sources (needs `cargo install cargo-deny --locked`)
+deny:
+    cargo deny check

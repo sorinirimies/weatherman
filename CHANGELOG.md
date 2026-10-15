@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.3] - 2026-10-15
+### 🔄 CI
+- prebuilt Nushell, cargo-deny + cargo-audit security workflow
+- prebuilt Nushell, cargo-deny + cargo-audit security workflow
+### 🔧 Chores
+- skip unconfigured remotes in *-all recipes
+- push/pull current branch instead of hardcoded main
+**Full Changelog**: https://github.com/sorinirimies/weatherman/compare/v0.5.2...v0.5.3
 ## [0.5.2] - 2026-10-14
 ### 📚 Documentation
 - add audit badge

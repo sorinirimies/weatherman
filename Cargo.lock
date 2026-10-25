@@ -4982,6 +4982,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tui-nuances"
+version = "0.1.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d7e70d3c50ce49a2389f0c5a4265b8fc4350e815df0895fced2035f76829ad4"
+dependencies = [
+ "ratatui",
+]
+
+[[package]]
 name = "typenum"
 version = "1.20.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5392,6 +5401,7 @@ dependencies = [
  "ratatui",
  "serde_json",
  "tokio",
+ "tui-nuances",
  "weatherman-core",
 ]
 

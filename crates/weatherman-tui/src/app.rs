@@ -9,6 +9,7 @@ use crossterm::{
 };
 use ratatui::{backend::CrosstermBackend, Terminal};
 use std::io::{self, Stdout};
+use tui_nuances::Theme;
 use weatherman_core::{ForecastView, Location, WeatherConfig, WeatherReport};
 
 /// The single-page terminal weather UI.
@@ -17,12 +18,18 @@ pub struct WeatherTui {
     location: Location,
     config: WeatherConfig,
     scroll: u16,
+    theme: Theme,
     terminal: Terminal<CrosstermBackend<Stdout>>,
 }
 
 impl WeatherTui {
     /// Create a new TUI from a fully-resolved weather report.
     pub fn new(report: WeatherReport, config: WeatherConfig) -> Result<Self> {
+        Self::with_theme(report, config, Theme::default())
+    }
+
+    /// Like [`WeatherTui::new`] with an explicit `tui-nuances` theme.
+    pub fn with_theme(report: WeatherReport, config: WeatherConfig, theme: Theme) -> Result<Self> {
         enable_raw_mode()?;
         let mut stdout = io::stdout();
         execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
@@ -42,6 +49,7 @@ impl WeatherTui {
             location: report.location,
             config,
             scroll: 0,
+            theme,
             terminal,
         })
     }
@@ -53,7 +61,14 @@ impl WeatherTui {
             let scroll = self.scroll;
 
             self.terminal.draw(|f| {
-                view::render(f, &self.view, &self.location, &self.config, scroll);
+                view::render(
+                    f,
+                    &self.theme,
+                    &self.view,
+                    &self.location,
+                    &self.config,
+                    scroll,
+                );
             })?;
 
             if let Event::Key(key) = event::read()? {
@@ -74,6 +89,8 @@ impl WeatherTui {
                     KeyCode::PageUp => {
                         self.scroll = scroll.saturating_sub(10);
                     }
+                    KeyCode::Char('t') => self.theme = self.theme.next(),
+                    KeyCode::Char('T') => self.theme = self.theme.prev(),
                     KeyCode::Char('g') | KeyCode::Home => self.scroll = 0,
                     KeyCode::Char('G') | KeyCode::End => self.scroll = total,
                     _ => {}

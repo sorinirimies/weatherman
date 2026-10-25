@@ -1,4 +1,5 @@
 use chrono::{Duration, Utc};
+use tui_nuances::Theme;
 use weatherman_core::{
     ConditionTone, DailyForecast, ForecastView, HourlyForecast, Location, WeatherCondition,
     WeatherConfig, WeatherDescription,
@@ -88,39 +89,39 @@ fn build_view(nh: usize, nd: usize) -> ForecastView {
 #[test]
 fn tone_color_is_stable_and_distinct() {
     assert_eq!(
-        view::tone_color(ConditionTone::Sunny),
-        view::tone_color(ConditionTone::Sunny)
+        view::tone_color(&Theme::default(), ConditionTone::Sunny),
+        view::tone_color(&Theme::default(), ConditionTone::Sunny)
     );
     assert_ne!(
-        view::tone_color(ConditionTone::Sunny),
-        view::tone_color(ConditionTone::Wet)
+        view::tone_color(&Theme::default(), ConditionTone::Sunny),
+        view::tone_color(&Theme::default(), ConditionTone::Wet)
     );
 }
 
 #[test]
 fn current_lines_has_header_and_data() {
     let v = build_view(3, 0);
-    let lines = view::current_lines(v.current.as_ref());
+    let lines = view::current_lines(&Theme::default(), v.current.as_ref());
     assert_eq!(lines.len(), 3); // header + two info lines
 }
 
 #[test]
 fn current_lines_handles_missing() {
-    let lines = view::current_lines(None);
+    let lines = view::current_lines(&Theme::default(), None);
     assert_eq!(lines.len(), 2); // header + "no data"
 }
 
 #[test]
 fn hourly_lines_caps_at_24() {
     let v = build_view(48, 0);
-    let lines = view::hourly_lines(&v.hours);
+    let lines = view::hourly_lines(&Theme::default(), &v.hours);
     assert_eq!(lines.len(), 25); // header + 24 rows
 }
 
 #[test]
 fn daily_lines_caps_at_7() {
     let v = build_view(0, 10);
-    let lines = view::daily_lines(&v.days);
+    let lines = view::daily_lines(&Theme::default(), &v.days);
     assert_eq!(lines.len(), 8); // header + 7 rows
 }
 

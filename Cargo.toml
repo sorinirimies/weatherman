@@ -36,6 +36,7 @@ iced = { version = "0.14", features = ["tokio", "canvas", "advanced"] }
 
 # TUI (Ratatui)
 ratatui   = "0.30"
+tui-nuances = "0.1.9"
 crossterm = "0.29"
 clap      = { version = "4", features = ["derive"] }
 

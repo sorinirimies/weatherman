@@ -25,5 +25,6 @@ chrono    = { workspace = true }
 serde_json = { workspace = true }
 tokio     = { workspace = true }
 ratatui   = { workspace = true }
+tui-nuances = { workspace = true }
 crossterm = { workspace = true }
 clap      = { workspace = true }

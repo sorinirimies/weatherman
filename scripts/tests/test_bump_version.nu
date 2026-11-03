@@ -1,105 +1,91 @@
 #!/usr/bin/env nu
-# ── weatherman · test_bump_version.nu ──────────────────────────────────────
-# Tests for scripts/bump_version.nu pure helpers:
-#   is_valid_version, set_workspace_version, set_core_dep_version.
+# ── Weatherman · test_bump_version.nu ─────────────────────────────────
+# Tests for the pure helpers of scripts/bump_version.nu.
 
 use std/assert
 use runner.nu *
-use ../bump_version.nu [is_valid_version set_workspace_version set_core_dep_version]
+use ../bump_version.nu [is_semver compare_versions set_workspace_version set_extension_version]
 
-# ── Helpers ─────────────────────────────────────────────────────────────────
-
-def make_workspace_cargo [version: string]: nothing -> string {
-    $'[workspace]
-members = [
-    "crates/weatherman-core",
-    "crates/weatherman-gui",
-    "crates/weatherman-tui",
-]
-resolver = "2"
+const CARGO = '[package]
+name = "weatherman"
+version.workspace = true
 
 [workspace.package]
-version    = "($version)"
-edition    = "2021"
+version      = "0.1.0"
+edition      = "2021"
 
 [workspace.dependencies]
-weatherman-core = { path = "crates/weatherman-core", version = "($version)" }
+demo-core    = "=0.3.7"
+serde = { version = "1", features = ["derive"] }
 '
+
+const EXT = 'id = "demo"
+name = "Demo"
+version = "0.1.0"
+schema_version = 1
+
+[language_servers.demo]
+name = "Demo"
+'
+
+def "test bump: semver accepts releases and pre-releases" [] {
+    assert (is_semver "0.1.0")
+    assert (is_semver "12.0.3-rc.1")
+    assert (not (is_semver "v0.1.0"))
+    assert (not (is_semver "0.1"))
+    assert (not (is_semver "0.1.0.4"))
+    assert (not (is_semver ""))
 }
 
-def dep_version [cargo: string]: nothing -> string {
-    $cargo
-    | lines
-    | where { |l| $l =~ '^weatherman-core\s*=' }
-    | first
-    | parse --regex 'version\s*=\s*"(?P<ver>[^"]+)"'
-    | get ver
-    | first
+def "test bump: compare orders by major minor patch" [] {
+    assert equal (compare_versions "0.2.0" "0.1.9") 1
+    assert equal (compare_versions "0.1.9" "0.2.0") (-1)
+    assert equal (compare_versions "1.0.0" "1.0.0") 0
+    assert equal (compare_versions "0.10.0" "0.9.0") 1 "numeric, not lexical"
 }
 
-def pkg_version [cargo: string]: nothing -> string {
-    $cargo
-    | lines
-    | each { |l| $l | str trim }
-    | where { |l| $l | str starts-with 'version' }
-    | where { |l| not ($l | str contains 'workspace = true') }
-    | first
-    | parse --regex 'version\s*=\s*"(?P<ver>[^"]+)"'
-    | get ver
-    | first
+def "test bump: a pre-release sorts below its release" [] {
+    assert equal (compare_versions "1.0.0-rc.1" "1.0.0") (-1)
+    assert equal (compare_versions "1.0.0" "1.0.0-rc.1") 1
+    assert equal (compare_versions "1.0.0-rc.2" "1.0.0-rc.10") (-1)
+    assert equal (compare_versions "1.0.0-alpha" "1.0.0-1") 1
+    assert equal (compare_versions "1.0.0-rc" "1.0.0-rc.1") (-1)
 }
 
-# ── is_valid_version ────────────────────────────────────────────────────────
-
-def "test bump: accepts plain semver" [] {
-    assert (is_valid_version "1.2.3")
-    assert (is_valid_version "0.0.0")
-    assert (is_valid_version "12.345.6789")
+def "test bump: only the workspace.package version changes" [] {
+    let out = (set_workspace_version $CARGO "0.2.0")
+    assert ($out | str contains 'version      = "0.2.0"')
+    assert ($out | str contains 'demo-core    = "=0.3.7"') "dependency pins stay"
+    assert ($out | str contains 'serde = { version = "1"') "dependency versions stay"
+    assert ($out | str contains 'version.workspace = true')
+    assert equal ($out | from toml | get workspace.package.version) "0.2.0"
 }
 
-def "test bump: accepts pre-release semver" [] {
-    assert (is_valid_version "1.0.0-rc.1")
-    assert (is_valid_version "0.3.0-beta.2")
+def "test bump: a single crate at the root bumps its package version" [] {
+    let text = "[package]\nname = \"x\"\nversion = \"0.1.0\"\n\n[dependencies]\nserde = { version = \"1\" }\nfoo = \"0.1.0\"\n"
+    let out = set_workspace_version $text "0.2.0"
+    assert equal ($out | from toml | get package.version) "0.2.0"
+    assert equal ($out | from toml | get dependencies.foo) "0.1.0" "dependency versions stay"
 }
 
-def "test bump: rejects invalid versions" [] {
-    assert (not (is_valid_version "1.2"))
-    assert (not (is_valid_version "v1.2.3"))
-    assert (not (is_valid_version "1.2.3.4"))
-    assert (not (is_valid_version "abc"))
-    assert (not (is_valid_version ""))
+def "test bump: workspace crates in workspace.dependencies follow the version" [] {
+    let text = "[workspace.package]\nversion = \"0.1.0\"\n\n[workspace.dependencies]\napp-core = { path = \"crates/app-core\", version = \"0.1.0\" }\nserde = { version = \"1\", features = [\"derive\"] }\n\n[profile.release]\nlto = true\n"
+    let out = set_workspace_version $text "0.2.0" | from toml
+    assert equal $out.workspace.package.version "0.2.0"
+    assert equal $out.workspace.dependencies.app-core.version "0.2.0"
+    assert equal $out.workspace.dependencies.serde.version "1" "registry dependencies stay"
 }
 
-# ── set_workspace_version ───────────────────────────────────────────────────
-
-def "test bump: rewrites workspace version" [] {
-    let cargo = (make_workspace_cargo "0.3.0")
-    let updated = (set_workspace_version $cargo "0.4.0")
-    assert equal (pkg_version $updated) "0.4.0"
+def "test bump: extension version changes once" [] {
+    let out = (set_extension_version $EXT "0.2.0")
+    assert equal ($out | from toml | get version) "0.2.0"
+    assert equal ($out | from toml | get language_servers.demo.name) "Demo"
+    assert equal ($out | lines | where {|l| $l starts-with "version" } | length) 1
 }
 
-# ── set_core_dep_version ────────────────────────────────────────────────────
-
-def "test bump: rewrites core dependency version" [] {
-    let cargo = (make_workspace_cargo "0.3.0")
-    let updated = (set_core_dep_version $cargo "0.4.0")
-    assert equal (dep_version $updated) "0.4.0"
+def "test bump: setting the same version is a no-op on content" [] {
+    let out = (set_extension_version $EXT "0.1.0")
+    assert equal ($out | from toml) ($EXT | from toml)
 }
-
-def "test bump: full bump keeps workspace and dep versions in sync" [] {
-    let cargo = (make_workspace_cargo "0.3.0")
-    let bumped = (set_core_dep_version (set_workspace_version $cargo "1.0.0") "1.0.0")
-    assert equal (pkg_version $bumped) "1.0.0"
-    assert equal (dep_version $bumped) "1.0.0"
-}
-
-def "test bump: leaves unrelated lines untouched" [] {
-    let cargo = (make_workspace_cargo "0.3.0")
-    let updated = (set_core_dep_version $cargo "0.4.0")
-    assert ($updated | str contains 'edition    = "2021"')
-    assert ($updated | str contains 'resolver = "2"')
-}
-
-# ── Main ────────────────────────────────────────────────────────────────────
 
 def main [] { run-tests }

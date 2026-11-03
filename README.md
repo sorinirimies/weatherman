@@ -132,19 +132,22 @@ just example-provider
 ## Development
 
 This repo uses [`just`](https://github.com/casey/just) as a task runner and
-[`nushell`](https://www.nushell.sh) for release scripts.
+[`nushell`](https://www.nushell.sh) for all scripts.
 
 ```bash
 just             # list all tasks
 just build       # build the workspace
-just run-gui     # launch the GUI
+just run         # launch the GUI
 just run-tui     # launch the TUI
 just test        # run all Rust tests
 just test-nu     # run the Nushell script tests
-just test-all-nu # run both Rust and Nushell tests
-just check-all   # fmt + clippy + test + nu
+just check-all   # the CI gate: fmt, clippy, tests, docs, Nushell tests
+just fuzz-all 30 # fuzz every target for 30 s (needs nightly + cargo-fuzz)
 just vhs-all     # regenerate demo GIFs (needs vhs)
 ```
+
+What a release ships (binaries, crates.io order, Linux packages) is set in
+`scripts/project.nu`.
 
 ### Release
 

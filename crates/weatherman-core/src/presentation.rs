@@ -7,8 +7,8 @@
 //! two front-ends pixel-for-pixel consistent and makes them trivially testable.
 
 use crate::format::{
-    condition_tone, convert_to_local, day_label, format_local_time, pop_percent, temp_unit_label,
-    uv_label, weekday_name, wind_direction_label, wind_unit_label, ConditionTone,
+    ConditionTone, condition_tone, convert_to_local, day_label, format_local_time, pop_percent,
+    temp_unit_label, uv_label, weekday_name, wind_direction_label, wind_unit_label,
 };
 use crate::types::{CurrentConditions, DailyForecast, HourlyForecast, Location, WeatherConfig};
 use chrono::Timelike;
@@ -115,15 +115,15 @@ impl DayDetail {
         let tz = &location.timezone;
 
         let mut precipitation = format!("{}% chance", pop_percent(day.pop));
-        if let Some(rain) = day.rain {
-            if rain > 0.0 {
-                precipitation.push_str(&format!(" · {:.1} mm rain", rain));
-            }
+        if let Some(rain) = day.rain
+            && rain > 0.0
+        {
+            precipitation.push_str(&format!(" · {:.1} mm rain", rain));
         }
-        if let Some(snow) = day.snow {
-            if snow > 0.0 {
-                precipitation.push_str(&format!(" · {:.1} mm snow", snow));
-            }
+        if let Some(snow) = day.snow
+            && snow > 0.0
+        {
+            precipitation.push_str(&format!(" · {:.1} mm snow", snow));
         }
 
         Self {

@@ -5,6 +5,8 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
 description = "weatherman — desktop weather app (Iced GUI) with current conditions, hourly and 7-day forecast"
 readme = "README.md"
 categories = ["gui", "visualization"]
@@ -24,3 +26,6 @@ anyhow  = { workspace = true }
 chrono  = { workspace = true }
 tokio   = { workspace = true }
 iced    = { workspace = true }
+
+[lints]
+workspace = true

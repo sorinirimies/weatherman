@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use chrono::{DateTime, Duration, NaiveDateTime, Timelike, Utc};
 use reqwest::Client;
 use serde_json::Value;
@@ -68,6 +68,16 @@ pub struct WeatherForecaster {
     api_keys: HashMap<String, String>,
 }
 
+// Manual: the API key values must never reach a log.
+impl std::fmt::Debug for WeatherForecaster {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("WeatherForecaster")
+            .field("config", &self.config)
+            .field("api_keys", &self.api_keys.keys().collect::<Vec<_>>())
+            .finish_non_exhaustive()
+    }
+}
+
 impl WeatherForecaster {
     /// Create a new weather forecaster with the given configuration
     pub fn new(config: WeatherConfig) -> Self {
@@ -118,11 +128,11 @@ impl WeatherForecaster {
         let response = self.client.get(&url).send().await?;
         let json: Value = response.json().await?;
 
-        if let Some(error) = json["error"].as_bool() {
-            if error {
-                let reason = json["reason"].as_str().unwrap_or("Unknown error");
-                return Err(anyhow!("Open-Meteo API error: {}", reason));
-            }
+        if let Some(error) = json["error"].as_bool()
+            && error
+        {
+            let reason = json["reason"].as_str().unwrap_or("Unknown error");
+            return Err(anyhow!("Open-Meteo API error: {}", reason));
         }
 
         // Parse current weather
@@ -161,11 +171,11 @@ impl WeatherForecaster {
         let response = self.client.get(&url).send().await?;
         let json: Value = response.json().await?;
 
-        if let Some(error) = json["error"].as_bool() {
-            if error {
-                let reason = json["reason"].as_str().unwrap_or("Unknown error");
-                return Err(anyhow!("Open-Meteo API error: {}", reason));
-            }
+        if let Some(error) = json["error"].as_bool()
+            && error
+        {
+            let reason = json["reason"].as_str().unwrap_or("Unknown error");
+            return Err(anyhow!("Open-Meteo API error: {}", reason));
         }
 
         self.parse_openmeteo_current(&json)
@@ -550,6 +560,16 @@ pub fn weather_description_from_wmo(code: u32, is_day: bool) -> WeatherDescripti
 mod tests {
     use super::parse_openmeteo_time;
     use chrono::Timelike;
+
+    #[test]
+    fn debug_shows_api_key_names_but_never_values() {
+        let mut f = super::WeatherForecaster::new(super::WeatherConfig::default());
+        f.api_keys
+            .insert("openweather".to_string(), "s3cr3t-value".to_string());
+        let shown = format!("{f:?}");
+        assert!(shown.contains("openweather"));
+        assert!(!shown.contains("s3cr3t-value"));
+    }
 
     #[test]
     fn parses_rfc3339_with_offset() {

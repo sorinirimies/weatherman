@@ -5,6 +5,8 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
 description = "Framework-free weather logic and a drop-in weather API provider (Open-Meteo) — domain models, geocoding, forecasting"
 readme = "README.md"
 categories = ["api-bindings", "command-line-utilities"]
@@ -27,3 +29,6 @@ strum_macros = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true }
+
+[lints]
+workspace = true

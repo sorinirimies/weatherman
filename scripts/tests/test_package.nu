@@ -1,0 +1,62 @@
+#!/usr/bin/env nu
+# ── Weatherman · test_package.nu ──────────────────────────────────────
+# The archive names are what installers/downloaders rely on; keep them stable.
+
+use std/assert
+use runner.nu *
+use ../ci/package.nu [asset_name binary_name is_windows]
+use ../ci/build_release.nu [build_args]
+use ../project.nu [BINS bin_crates release_matrix gitea_targets]
+
+# The first binary in BINS is the default for asset_name and binary_name.
+def first_bin [] { $BINS.0.bin }
+
+def "test package: unix targets are tar.gz" [] {
+    let b = first_bin
+    assert equal (asset_name "aarch64-apple-darwin") $"($b)-aarch64-apple-darwin.tar.gz"
+    assert equal (asset_name "x86_64-unknown-linux-musl") $"($b)-x86_64-unknown-linux-musl.tar.gz"
+    assert equal (binary_name "aarch64-unknown-linux-musl") $b
+}
+
+def "test package: windows is zip with exe" [] {
+    let b = first_bin
+    assert (is_windows "x86_64-pc-windows-msvc")
+    assert equal (asset_name "x86_64-pc-windows-msvc") $"($b)-x86_64-pc-windows-msvc.zip"
+    assert equal (binary_name "x86_64-pc-windows-msvc") $"($b).exe"
+}
+
+def "test package: a named binary gets its own archive" [] {
+    assert equal (asset_name "aarch64-apple-darwin" "other") "other-aarch64-apple-darwin.tar.gz"
+    assert equal (binary_name "x86_64-pc-windows-msvc" "other") "other.exe"
+}
+
+def "test build_release: release locked and one -p per binary crate" [] {
+    let p = bin_crates | each {|c| [-p $c] } | flatten
+    assert equal ($p | length) (2 * ($BINS.crate | uniq | length))
+    assert equal (build_args "x86_64-unknown-linux-musl") [--release --locked --target x86_64-unknown-linux-musl ...$p]
+    assert equal (build_args) [--release --locked ...$p]
+}
+
+def "test package: musl releases five targets, the linux ones with zig" [] {
+    let m = release_matrix musl
+    assert equal ($m.target | sort) [aarch64-apple-darwin aarch64-unknown-linux-musl x86_64-apple-darwin x86_64-pc-windows-msvc x86_64-unknown-linux-musl]
+    assert equal ($m | where zig | get target | sort) [aarch64-unknown-linux-musl x86_64-unknown-linux-musl]
+    assert equal (gitea_targets musl) [x86_64-unknown-linux-musl aarch64-unknown-linux-musl]
+}
+
+def "test package: gnu builds linux natively, arm64 on an arm runner" [] {
+    let m = release_matrix gnu
+    assert equal ($m | where zig | length) 0
+    assert equal ($m | where target == aarch64-unknown-linux-gnu | get runner.0) ubuntu-24.04-arm
+    assert ("x86_64-unknown-linux-gnu" in $m.target)
+    assert equal (gitea_targets gnu) [x86_64-unknown-linux-gnu]
+}
+
+def "test package: the release workflow builds the matrix from project.nu" [] {
+    let root = ($env.CURRENT_FILE | path dirname | path join ".." "..")
+    let wf = (open --raw ($root | path join ".github" "workflows" "release.yml"))
+    assert ($wf | str contains "nu scripts/project.nu matrix")
+    assert ($wf | str contains "fromJSON(needs.validate.outputs.matrix)")
+}
+
+def main [] { run-tests }

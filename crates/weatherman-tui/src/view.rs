@@ -1,16 +1,16 @@
 //! Single-page, scrollable weather view rendering (no animations).
 
 use ratatui::{
+    Frame,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span, Text},
     widgets::{Block, BorderType, Borders, Paragraph, Wrap},
-    Frame,
 };
 use tui_nuances::Theme;
 use weatherman_core::{
-    temp_unit_label, ConditionTone, CurrentView, DayRow, ForecastView, HourRow, Location,
-    WeatherConfig,
+    ConditionTone, CurrentView, DayRow, ForecastView, HourRow, Location, WeatherConfig,
+    temp_unit_label,
 };
 
 /// Map a weather condition tone to a colour of `theme`.

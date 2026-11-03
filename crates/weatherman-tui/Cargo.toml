@@ -5,6 +5,8 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
 description = "weatherman — terminal weather app (Ratatui TUI) with a single-page current + hourly + 7-day forecast"
 readme = "README.md"
 categories = ["command-line-utilities", "visualization"]
@@ -28,3 +30,6 @@ ratatui   = { workspace = true }
 tui-nuances = { workspace = true }
 crossterm = { workspace = true }
 clap      = { workspace = true }
+
+[lints]
+workspace = true

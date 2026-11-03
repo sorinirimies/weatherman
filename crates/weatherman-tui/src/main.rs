@@ -2,7 +2,7 @@
 
 use anyhow::Result;
 use clap::Parser;
-use weatherman_core::{load_report, Forecast, WeatherConfig};
+use weatherman_core::{Forecast, WeatherConfig, load_report};
 use weatherman_tui::WeatherTui;
 
 #[derive(Parser)]

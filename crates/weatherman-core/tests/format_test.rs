@@ -1,7 +1,7 @@
 use chrono::{TimeZone, Utc};
 use weatherman_core::{
-    condition_tone, day_label, pop_percent, temp_unit_label, weekday_name, wind_direction_arrow,
-    wind_direction_label, wind_unit_label, ConditionTone, WeatherCondition,
+    ConditionTone, WeatherCondition, condition_tone, day_label, pop_percent, temp_unit_label,
+    weekday_name, wind_direction_arrow, wind_direction_label, wind_unit_label,
 };
 
 #[test]
@@ -76,4 +76,18 @@ fn test_pop_percent() {
 fn test_weekday_name() {
     let date = Utc.with_ymd_and_hms(2024, 1, 1, 12, 0, 0).unwrap(); // Monday
     assert_eq!(weekday_name(&date), "Monday");
+}
+
+#[test]
+fn local_time_at_the_end_of_the_date_range_does_not_panic() {
+    let last = chrono::DateTime::<chrono::Utc>::MAX_UTC;
+    assert_eq!(
+        weatherman_core::format::format_local_time(&last, "Asia/Tokyo").len(),
+        5
+    );
+    let first = chrono::DateTime::<chrono::Utc>::MIN_UTC;
+    assert_eq!(
+        weatherman_core::format::format_local_time(&first, "America/New_York").len(),
+        5
+    );
 }

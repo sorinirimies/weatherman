@@ -1,9 +1,9 @@
-# weatherman workspace — task runner
-# Install just:      cargo install just
-# Install vhs:       brew install vhs  OR  go install github.com/charmbracelet/vhs@latest
-# Install git-cliff: cargo install git-cliff
-# Install nushell:   cargo install nu
-# Usage: just <task>
+# Weatherman — task runner
+# Recipes run in Nushell; anything longer than a line lives in scripts/*.nu (tested).
+# Install: cargo install just nu git-cliff   — then `just install-tools`
+# Usage:   just <task>
+
+set shell := ["nu", "-c"]
 
 # ── Default ───────────────────────────────────────────────────────────────────
 
@@ -13,333 +13,231 @@ default:
 # ── Tool checks ───────────────────────────────────────────────────────────────
 
 _check-git-cliff:
-    @command -v git-cliff >/dev/null 2>&1 || { \
-        echo "❌ git-cliff not found. Install with: cargo install git-cliff"; exit 1; \
-    }
+    @nu scripts/tools.nu check git-cliff
 
-_check-nu:
-    @command -v nu >/dev/null 2>&1 || { \
-        echo "❌ nu (nushell) not found. Install: https://www.nushell.sh"; exit 1; \
-    }
-
-_check-vhs:
-    @command -v vhs >/dev/null 2>&1 || { \
-        echo "❌ vhs not found."; \
-        echo "   macOS:      brew install vhs"; \
-        echo "   Any:        go install github.com/charmbracelet/vhs@latest"; \
-        exit 1; \
-    }
-
-# Install all recommended development tools
+# Install the development tools (git-cliff, cargo-audit/deny/fuzz/llvm-cov/outdated)
 install-tools:
-    @echo "Installing development tools…"
-    @command -v git-cliff >/dev/null 2>&1 || cargo install git-cliff --locked
-    @command -v nu >/dev/null 2>&1 || cargo install nu --locked
-    @echo "✅ All tools installed!"
+    nu scripts/tools.nu install
 
 # ── Build ─────────────────────────────────────────────────────────────────────
-
-# Build the entire workspace (dev)
-build:
-    cargo build --workspace
-
-# Build only the core library (dev)
-build-core:
-    cargo build -p weatherman-core
-
-# Build only the GUI crate (dev)
-build-gui:
-    cargo build -p weatherman
-
-# Build only the TUI crate (dev)
-build-tui:
-    cargo build -p weatherman-tui
-
-# Build release binaries for GUI and TUI
-build-release:
-    cargo build --release -p weatherman -p weatherman-tui
-
-# ── Run ───────────────────────────────────────────────────────────────────────
-
-# Launch the Iced desktop GUI
-run-gui:
-    cargo run -p weatherman
-
-# Launch the Ratatui terminal UI
-run-tui:
-    cargo run -p weatherman-tui
-
-# Alias: default run launches the GUI
-run: run-gui
-
-# ── Test ──────────────────────────────────────────────────────────────────────
-
-# Run the full workspace test suite
-test:
-    cargo test --workspace --locked --all-features --all-targets
-
-# Test only the core library
-test-core:
-    cargo test -p weatherman-core --all-features
-
-# Test only the TUI crate
-test-tui:
-    cargo test -p weatherman-tui --all-features
-
-# Run the Nushell script tests
-test-nu: _check-nu
-    nu scripts/tests/run_all.nu
-
-# Run both the Rust and Nushell test suites
-test-all-nu: test test-nu
-    @echo "✅ All Rust and Nushell tests passed!"
-
-# ── Examples / demos ──────────────────────────────────────────────────────────
-
-# Print a forecast using only the core library (network). e.g. just example-report Berlin
-example-report location="":
-    cargo run -p weatherman-core --example report -- "{{ location }}"
-
-# Run the offline custom-provider library demo (no network)
-example-provider:
-    cargo run -p weatherman-core --example custom_provider
-
-# ── Code quality ──────────────────────────────────────────────────────────────
 
 # Check without building
 check:
     cargo check --workspace
 
-# Format all code
+# Build (dev)
+build:
+    cargo build --workspace
+
+# Release build of the shipped binaries (scripts/project.nu)
+build-release:
+    nu scripts/ci/build_release.nu
+
+# Install the shipped binaries from this checkout into ~/.cargo/bin
+install:
+    nu scripts/ci/build_release.nu install
+
+# ── Run ───────────────────────────────────────────────────────────────────────
+
+# Run the main binary (e.g. just run --help)
+run *args:
+    cargo run -q -p weatherman -- {{ args }}
+
+# ── Test & quality ────────────────────────────────────────────────────────────
+
+# Rust tests
+test:
+    cargo test --workspace --all-features
+
+# Nushell script tests
+test-nu:
+    nu scripts/tests/run_all.nu
+
 fmt:
     cargo fmt --all
 
-# Check formatting without modifying files
 fmt-check:
     cargo fmt --all -- --check
 
-# Run clippy across the workspace
+# Clippy, warnings are errors
 clippy:
     cargo clippy --workspace --all-targets --all-features -- -D warnings
 
-# Run all quality checks (format, clippy, test, nu) — must pass before a release.
-check-all: fmt clippy test test-nu
-    @echo "🔍 Verifying formatting is clean…"
-    cargo fmt --all -- --check
-    @echo "✅ All checks passed!"
+# Rust and Nu tests
+test-all-nu: test test-nu
+    @echo "✅ All Rust and Nu tests passed!"
 
-# Full pre-release quality gate — everything in check-all plus a release build.
-check-release: check-all build-release
-    @echo "✅ Release quality gate passed (fmt + clippy + test + release build)!"
+# Line coverage (needs cargo-llvm-cov); writes target/llvm-cov/html
+coverage:
+    cargo llvm-cov --workspace --html
+    @echo "→ target/llvm-cov/html/index.html"
 
-# ── VHS Demo GIFs ─────────────────────────────────────────────────────────────
-
-GUI_VHS := "crates/weatherman-gui/examples/vhs"
-TUI_VHS := "crates/weatherman-tui/examples/vhs"
-CORE_VHS := "crates/weatherman-core/examples/vhs"
-GUI_VHS_GENERATED := "crates/weatherman-gui/examples/vhs/generated"
-TUI_VHS_GENERATED := "crates/weatherman-tui/examples/vhs/generated"
-CORE_VHS_GENERATED := "crates/weatherman-core/examples/vhs/generated"
-
-# Generate all VHS demo GIFs (GUI + TUI)
-vhs-all: vhs-core vhs-gui vhs-tui
-
-# Generate the core library demo GIF
-vhs-core: _check-vhs
-    #!/usr/bin/env sh
-    set -e
-    mkdir -p {{ CORE_VHS_GENERATED }}
-    for tape in {{ CORE_VHS }}/*.tape; do
-        [ -f "$tape" ] || continue
-        echo "▶  $tape"
-        vhs "$tape" || echo "❌ Failed: $tape"
-    done
-    echo "✅ Core demos done → {{ CORE_VHS_GENERATED }}/"
-
-# Generate only the GUI demo GIFs
-vhs-gui: _check-vhs
-    #!/usr/bin/env sh
-    set -e
-    mkdir -p {{ GUI_VHS_GENERATED }}
-    for tape in {{ GUI_VHS }}/*.tape; do
-        [ -f "$tape" ] || continue
-        echo "▶  $tape"
-        vhs "$tape" || echo "❌ Failed: $tape"
-    done
-    echo "✅ GUI demos done → {{ GUI_VHS_GENERATED }}/"
-
-# Generate only the TUI demo GIFs
-vhs-tui: _check-vhs
-    #!/usr/bin/env sh
-    set -e
-    mkdir -p {{ TUI_VHS_GENERATED }}
-    for tape in {{ TUI_VHS }}/*.tape; do
-        [ -f "$tape" ] || continue
-        echo "▶  $tape"
-        vhs "$tape" || echo "❌ Failed: $tape"
-    done
-    echo "✅ TUI demos done → {{ TUI_VHS_GENERATED }}/"
-
-# Render a single tape by name (e.g. just vhs-tape tui-demo)
-vhs-tape name: _check-vhs
-    #!/usr/bin/env sh
-    if [ -f "{{ GUI_VHS }}/{{ name }}.tape" ]; then
-        vhs "{{ GUI_VHS }}/{{ name }}.tape" && echo "✅ Done."
-    elif [ -f "{{ TUI_VHS }}/{{ name }}.tape" ]; then
-        vhs "{{ TUI_VHS }}/{{ name }}.tape" && echo "✅ Done."
-    elif [ -f "{{ CORE_VHS }}/{{ name }}.tape" ]; then
-        vhs "{{ CORE_VHS }}/{{ name }}.tape" && echo "✅ Done."
-    else
-        echo "❌ Tape not found: {{ name }}.tape"; just vhs-list; exit 1
-    fi
-
-# List all available VHS tapes
-vhs-list:
-    #!/usr/bin/env sh
-    echo "GUI tapes  →  {{ GUI_VHS }}/"
-    ls {{ GUI_VHS }}/*.tape 2>/dev/null | sed 's|.*/||; s|\.tape||' | sed 's/^/  /' || echo "  (none)"
-    echo ""
-    echo "TUI tapes  →  {{ TUI_VHS }}/"
-    ls {{ TUI_VHS }}/*.tape 2>/dev/null | sed 's|.*/||; s|\.tape||' | sed 's/^/  /' || echo "  (none)"
-    echo ""
-    echo "Core tapes →  {{ CORE_VHS }}/"
-    ls {{ CORE_VHS }}/*.tape 2>/dev/null | sed 's|.*/||; s|\.tape||' | sed 's/^/  /' || echo "  (none)"
-
-# ── Documentation ─────────────────────────────────────────────────────────────
-
-# Generate docs for the full workspace (no browser)
+# Docs for the workspace, warnings are errors (what docs.rs would reject)
 doc:
-    cargo doc --no-deps --workspace
+    $env.RUSTDOCFLAGS = "-D warnings"; cargo doc --no-deps --workspace
+
+# Everything CI runs (fmt check, clippy, tests, versions, nu tests)
+check-all: fmt
+    nu scripts/ci/quality_gate.nu
+
+# Security: known vulnerabilities (cargo install cargo-audit)
+audit:
+    cargo audit
+
+# Security: licenses, advisories, bans, sources (cargo install cargo-deny)
+deny:
+    cargo deny check
+
+# Fuzz one target (e.g. just fuzz parse 60); needs nightly + cargo-fuzz
+fuzz target secs="60":
+    cargo +nightly fuzz run {{ target }} -- -max_total_time={{ secs }}
+
+# Every fuzz target for a short while
+fuzz-all secs="30":
+    nu scripts/ci/fuzz_all.nu --secs {{ secs }}
+
+# List the fuzz targets
+fuzz-list:
+    cargo +nightly fuzz list
+
+# Security + fuzz locally, like the nightly workflows
+nightly-local: audit deny fuzz-all
+
+# ── Dependencies ──────────────────────────────────────────────────────────────
+
+# Update Cargo.lock and fuzz/Cargo.lock (semver-compatible only)
+update:
+    nu scripts/ci/deps_update.nu update
+
+# Show outdated dependencies (needs cargo-outdated)
+outdated:
+    cargo outdated --workspace
+
+# What the nightly workflow does: update, full gate, commit and push if green
+update-deps: update check-all
+    nu scripts/ci/deps_update.nu commit (git config user.name) (git config user.email)
+
+# ── Nightly workflows on demand ───────────────────────────────────────────────
+
+# Run a GitHub workflow now (deps-update | security | fuzz | ci), needs gh
+gh-run workflow="deps-update":
+    gh workflow run {{ workflow }}.yml
+    @echo "✅ Dispatched {{ workflow }} — gh run watch"
+
+# Run a Gitea workflow now (deps-update | security | fuzz); needs GITEA_URL + GITEA_TOKEN
+gitea-run workflow="deps-update":
+    nu scripts/gitea_run.nu {{ workflow }}
+
+# The nightly dependency update, now, on both hosts
+deps-update-now: (gh-run "deps-update")
+    -just gitea-run deps-update
+
+# Security audit workflow, now, on both hosts
+security-now: (gh-run "security")
+    -just gitea-run security
+
+# Fuzz workflow, now, on both hosts
+fuzz-now: (gh-run "fuzz")
+    -just gitea-run fuzz
 
 # ── Changelog ─────────────────────────────────────────────────────────────────
 
-# Regenerate the full CHANGELOG.md from all tags
+# Regenerate CHANGELOG.md from all tags
 changelog: _check-git-cliff
     git-cliff --output CHANGELOG.md
-    @echo "✅ CHANGELOG.md updated."
 
-# Preview changelog for the next release without writing the file
+# Preview the next release's changelog
 changelog-preview: _check-git-cliff
     @git-cliff --unreleased
 
-# ── Version bump ─────────────────────────────────────────────────────────────
+# Prepend only the unreleased commits to CHANGELOG.md
+changelog-unreleased: _check-git-cliff
+    git-cliff --unreleased --prepend CHANGELOG.md
 
-# Bump the workspace version, regenerate Cargo.lock + CHANGELOG.md, commit and tag.
-bump version: check-release _check-git-cliff _check-nu
-    nu scripts/bump_version.nu --yes {{ version }}
+# Show the latest release's entry
+changelog-latest: _check-git-cliff
+    @git-cliff --latest
 
-# Show the current workspace version
-version: _check-nu
+# ── Version & release ─────────────────────────────────────────────────────────
+
+# Current version (Cargo.toml)
+version:
     @nu scripts/version.nu
 
-# ── Publish (crates.io) ───────────────────────────────────────────────────────
+# Check Cargo.toml and EXTRA_MANIFESTS agree (and a tag, if given)
+check-versions tag="":
+    nu scripts/ci/check_versions.nu {{ tag }}
 
-# Run the full pre-publish readiness check
-check-publish: _check-nu
-    nu scripts/check_publish.nu
+# Validate that a version gives a valid vX.Y.Z tag
+validate-tag version:
+    nu scripts/ci/validate_tag.nu "v{{ version }}"
 
-# Dry-run publish for all three crates (in dependency order)
-publish-dry: check-all
-    cargo publish --dry-run -p weatherman-core
-    cargo publish --dry-run -p weatherman
-    cargo publish --dry-run -p weatherman-tui
+# What would be released, without changing anything
+release-preview: _check-git-cliff
+    @print $"Current version: (nu scripts/version.nu)\n"
+    @git-cliff --unreleased
+    @nu scripts/project.nu
 
-# Publish all three in dependency order: core → gui → tui.
-publish: check-all publish-core publish-gui publish-tui
-    @echo "✅ weatherman-core, weatherman, and weatherman-tui published!"
+# Everything in check-all plus a release build and the docs
+check-release: check-all build-release doc
+    @echo "✅ Release gate passed"
 
-# Publish weatherman-core (required by gui and tui)
-publish-core:
-    @echo "📦 Publishing weatherman-core…"
-    cargo publish -p weatherman-core
-    @echo "⏳ Waiting 30 s for the index to propagate…"
-    sleep 30
+# Dry-run the crates.io publish of every crate in scripts/project.nu
+publish-dry:
+    nu scripts/ci/publish_crate.nu --dry-run
 
-# Publish weatherman (GUI)
-publish-gui:
-    @echo "📦 Publishing weatherman (GUI)…"
-    cargo publish -p weatherman
+# Bump Cargo.toml (+ EXTRA_MANIFESTS) + Cargo.lock, regenerate the changelog, commit and tag
+bump version: _check-git-cliff check-all
+    nu scripts/bump_version.nu --yes --skip-checks {{ version }}
 
-# Publish weatherman-tui
-publish-tui:
-    @echo "📦 Publishing weatherman-tui…"
-    cargo publish -p weatherman-tui
+# Bump, tag and push to GitHub — starts the Release workflow
+release version: (bump version)
+    git push --follow-tags origin (git branch --show-current)
+    @print "✅ v{{ version }} pushed — the Release workflow builds the binaries."
 
-# ── Housekeeping ──────────────────────────────────────────────────────────────
+# First release of the version already in Cargo.toml (no bump), pushed to GitHub
+release-initial: _check-git-cliff check-all
+    nu scripts/release_initial.nu
+    git push --follow-tags origin (git branch --show-current)
 
-# Remove build artifacts
-clean:
-    cargo clean
+# Bump, tag and push to every remote — starts the Release workflows on both hosts
+release-all version: (bump version) push-all
 
-# Update all dependencies (Cargo.lock only)
-update:
-    cargo update
+# Bump, tag and push to Gitea only
+release-gitea-starscream version: (bump version)
+    git push --follow-tags gitea-starscream (git branch --show-current)
 
-# Upgrade dependencies via cargo-edit and cross-check (nu script)
-upgrade-deps: _check-nu
-    nu scripts/upgrade_deps.nu
+# First release, pushed to every remote
+release-initial-all: _check-git-cliff check-all
+    nu scripts/release_initial.nu
+    nu scripts/remotes.nu push
 
-# Show outdated dependencies (requires cargo-outdated)
-outdated:
-    cargo outdated
+# Re-run the GitHub Release workflow for an existing tag (e.g. just release-retrigger 0.1.0)
+release-retrigger version:
+    gh workflow run release.yml --field tag=v{{ version }}
 
-# ── Git remotes & pushing ────────────────────────────────────────────────────
-# weatherman lives on GitHub (origin) and the Gitea Starscream instance. Every
-# *-all recipe loops over REMOTES and keeps going when one fails.
+# Package the release binaries locally (e.g. just package aarch64-apple-darwin)
+package target:
+    nu scripts/ci/build_release.nu {{ target }}
+    nu scripts/ci/package.nu {{ target }} --out dist
 
-REMOTES := "origin gitea-starscream"
+# ── Git remotes (GitHub = origin, Gitea = gitea-starscream; no mirroring) ─────
 
-# Push the current branch to GitHub (origin)
+# Push the current branch + tags to every configured remote (continues on failure)
+push-all:
+    nu scripts/remotes.nu push
+
+# Show all configured remotes
+remotes:
+    @git remote -v
+
+# Push the current branch to GitHub
 push:
-    git push origin "$(git branch --show-current)"
+    git push origin (git branch --show-current)
 
 # Push the current branch to Gitea Starscream
 push-gitea-starscream:
-    git push gitea-starscream "$(git branch --show-current)"
-
-# Push the current branch to every remote (continues on failure)
-push-all:
-    #!/usr/bin/env sh
-    failed=""; skipped=""
-    for r in {{ REMOTES }}; do
-        git remote get-url "$r" >/dev/null 2>&1 || { echo "↷ skipping $r (not configured here; add with: git remote add $r <url>)"; skipped="$skipped $r"; continue; }
-        git push "$r" "$(git branch --show-current)" || failed="$failed $r"
-    done
-    if [ -n "$skipped" ]; then echo "ℹ️  Skipped (not configured):$skipped"; fi
-    if [ -n "$failed" ]; then echo "⚠️  Failed to push to:$failed"; exit 1; fi
-    echo "✅ Pushed to: {{ REMOTES }}"
-
-# Force-push the current branch to every remote (leases are NOT used — be sure!)
-push-all-force:
-    #!/usr/bin/env sh
-    failed=""; skipped=""
-    for r in {{ REMOTES }}; do
-        git remote get-url "$r" >/dev/null 2>&1 || { echo "↷ skipping $r (not configured here; add with: git remote add $r <url>)"; skipped="$skipped $r"; continue; }
-        git push --force "$r" "$(git branch --show-current)" || failed="$failed $r"
-    done
-    if [ -n "$skipped" ]; then echo "ℹ️  Skipped (not configured):$skipped"; fi
-    if [ -n "$failed" ]; then echo "⚠️  Failed to force-push to:$failed"; exit 1; fi
-    echo "✅ Force-pushed to: {{ REMOTES }}"
-
-# Pull the current branch from GitHub (origin)
-pull:
-    git pull origin "$(git branch --show-current)"
-
-# Pull the current branch from Gitea Starscream
-pull-gitea-starscream:
-    git pull gitea-starscream "$(git branch --show-current)"
-
-# Pull the current branch from every remote (continues on failure)
-pull-all:
-    #!/usr/bin/env sh
-    failed=""; skipped=""
-    for r in {{ REMOTES }}; do
-        git remote get-url "$r" >/dev/null 2>&1 || { echo "↷ skipping $r (not configured here; add with: git remote add $r <url>)"; skipped="$skipped $r"; continue; }
-        git pull "$r" "$(git branch --show-current)" || failed="$failed $r"
-    done
-    if [ -n "$skipped" ]; then echo "ℹ️  Skipped (not configured):$skipped"; fi
-    if [ -n "$failed" ]; then echo "⚠️  Failed to pull from:$failed"; exit 1; fi
-    echo "✅ Pulled from: {{ REMOTES }}"
+    git push gitea-starscream (git branch --show-current)
 
 # Push all tags to GitHub
 push-tags:
@@ -347,73 +245,59 @@ push-tags:
 
 # Push all tags to every remote (continues on failure)
 push-tags-all:
-    #!/usr/bin/env sh
-    failed=""; skipped=""
-    for r in {{ REMOTES }}; do
-        git remote get-url "$r" >/dev/null 2>&1 || { echo "↷ skipping $r (not configured here; add with: git remote add $r <url>)"; skipped="$skipped $r"; continue; }
-        git push "$r" --tags || failed="$failed $r"
-    done
-    if [ -n "$skipped" ]; then echo "ℹ️  Skipped (not configured):$skipped"; fi
-    if [ -n "$failed" ]; then echo "⚠️  Failed to push tags to:$failed"; exit 1; fi
-    echo "✅ Tags pushed to: {{ REMOTES }}"
+    nu scripts/remotes.nu push-tags
 
-# Force-sync Gitea Starscream with GitHub (main + tags)
+# Latest commit + tags to every remote, after the gate (no bump)
+push-release-all: check-all push-all
+
+# Force-push the current branch to every remote (no lease — be sure!)
+push-all-force:
+    nu scripts/remotes.nu push --force
+
+# Pull the current branch from GitHub
+pull:
+    git pull origin (git branch --show-current)
+
+# Pull the current branch from Gitea Starscream
+pull-gitea-starscream:
+    git pull gitea-starscream (git branch --show-current)
+
+# Pull the current branch from every remote (continues on failure)
+pull-all:
+    nu scripts/remotes.nu pull
+
+# Force-sync Gitea Starscream with this checkout (branch + tags) — the nightlies diverge
 sync-gitea-starscream:
-    git push gitea-starscream "$(git branch --show-current)" --force
+    git push gitea-starscream (git branch --show-current) --force
     git push gitea-starscream --tags --force
-    @echo "✅ Gitea Starscream force-synced."
 
-# Add the Gitea Starscream remote if it is missing
+# Add the missing remotes
 setup-remotes:
-    #!/usr/bin/env sh
-    git remote get-url origin >/dev/null 2>&1 || git remote add origin git@github.com:sorinirimies/weatherman.git
-    git remote get-url gitea-starscream >/dev/null 2>&1 || git remote add gitea-starscream gitea@192.168.1.44:sorin/weatherman.git
-    git remote -v
+    nu scripts/remotes.nu setup
 
-# ── Release workflow ──────────────────────────────────────────────────────────
+# Remove build artifacts
+clean:
+    cargo clean
+    rm -rf dist
 
-# Show what would be released without making any changes
-release-preview: _check-git-cliff _check-nu
-    @echo "Current version: $(nu scripts/version.nu)"
-    @echo ""
-    @echo "Unreleased commits:"
-    @git-cliff --unreleased
+# ── Project extras ─────────────────────────────────────────────────────────────
 
-# Bump, commit, tag, then push to every remote — triggers the Release workflows.
-release version: (bump version)
-    #!/usr/bin/env sh
-    failed=""; skipped=""
-    for r in {{ REMOTES }}; do
-        git remote get-url "$r" >/dev/null 2>&1 || { echo "↷ skipping $r (not configured here; add with: git remote add $r <url>)"; skipped="$skipped $r"; continue; }
-        git push --follow-tags "$r" "$(git branch --show-current)" || failed="$failed $r"
-    done
-    if [ -n "$skipped" ]; then echo "ℹ️  Skipped (not configured):$skipped"; fi
-    if [ -n "$failed" ]; then echo "⚠️  Release v{{ version }} failed to push to:$failed"; exit 1; fi
-    echo "✅ Release v{{ version }} pushed to: {{ REMOTES }}"
+# Launch the Ratatui terminal UI (e.g. just run-tui --location Berlin)
+run-tui *args:
+    cargo run -q -p weatherman-tui -- {{ args }}
 
-# Bump, commit, tag, then push to GitHub only.
-release-github version: (bump version)
-    git push --follow-tags origin "$(git branch --show-current)"
+# Print a forecast report with the core library (online)
+example-report location="":
+    cargo run -q -p weatherman-core --example report -- "{{ location }}"
 
-# Bump, commit, tag, then push to Gitea Starscream only.
-release-gitea-starscream version: (bump version)
-    git push --follow-tags gitea-starscream "$(git branch --show-current)"
+# Run the offline custom-provider library demo
+example-provider:
+    cargo run -q -p weatherman-core --example custom_provider
 
-# Push latest commit and tags to every remote (no bump).
-push-release-all: check-all
-    #!/usr/bin/env sh
-    failed=""; skipped=""
-    for r in {{ REMOTES }}; do
-        git remote get-url "$r" >/dev/null 2>&1 || { echo "↷ skipping $r (not configured here; add with: git remote add $r <url>)"; skipped="$skipped $r"; continue; }
-        git push --follow-tags "$r" "$(git branch --show-current)" || failed="$failed $r"
-    done
-    if [ -n "$skipped" ]; then echo "ℹ️  Skipped (not configured):$skipped"; fi
-    if [ -n "$failed" ]; then echo "⚠️  Failed to push to:$failed"; exit 1; fi
+# Render every VHS tape (crates/*/examples/vhs/*.tape)
+vhs-all:
+    for t in (glob crates/*/examples/vhs/*.tape | sort) { print -e $"▶ ($t)"; ^vhs $t }
 
-# Security: dependency vulnerability scan (needs `cargo install cargo-audit`)
-audit:
-    cargo audit
-
-# Security: licenses/advisories/bans/sources (needs `cargo install cargo-deny --locked`)
-deny:
-    cargo deny check
+# Render one tape by name (e.g. just vhs tui-demo)
+vhs name:
+    let t = (glob "crates/*/examples/vhs/{{ name }}.tape"); if ($t | is-empty) { error make {msg: "no tape named {{ name }}"} }; ^vhs $t.0

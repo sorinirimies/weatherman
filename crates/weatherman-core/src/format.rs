@@ -44,11 +44,7 @@ pub fn temp_unit_label(units: &str) -> &'static str {
 
 /// Wind-speed unit label for the given units string.
 pub fn wind_unit_label(units: &str) -> &'static str {
-    if units == "imperial" {
-        "mph"
-    } else {
-        "m/s"
-    }
+    if units == "imperial" { "mph" } else { "m/s" }
 }
 
 /// Convert a compass bearing in degrees to a short cardinal label (N, NE, …).
@@ -108,7 +104,7 @@ pub fn is_daytime(hour: u32) -> bool {
 
 /// Convert a UTC timestamp to local time using a fixed hour offset derived from
 /// a small built-in timezone table. This mirrors the original app behaviour and
-/// avoids pulling in a full tz database.
+/// avoids pulling in a full tz database. Unknown names are UTC.
 pub fn convert_to_local(time: &DateTime<Utc>, timezone: &str) -> DateTime<Utc> {
     let hours_offset = match timezone {
         "America/New_York" | "EST" | "EDT" => -5,
@@ -127,7 +123,9 @@ pub fn convert_to_local(time: &DateTime<Utc>, timezone: &str) -> DateTime<Utc> {
         "Australia/Sydney" | "AEST" | "AEDT" => 10,
         _ => 0,
     };
-    *time + chrono::Duration::hours(hours_offset)
+    // At the very ends of chrono's range the shift would overflow: keep UTC.
+    time.checked_add_signed(chrono::Duration::hours(hours_offset))
+        .unwrap_or(*time)
 }
 
 /// Format a timestamp as `HH:MM` in the given timezone.

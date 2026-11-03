@@ -7,7 +7,7 @@
 //! This demonstrates the library end-to-end: geocoding, fetching, and building
 //! the UI-agnostic `ForecastView` whose fields are already display-ready.
 
-use weatherman_core::{load_report, ForecastView, WeatherConfig};
+use weatherman_core::{ForecastView, WeatherConfig, load_report};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

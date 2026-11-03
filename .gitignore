@@ -32,3 +32,10 @@ coverage/
 *.dll
 *.exe
 .codegraph/
+
+# Release and fuzz output
+/dist/
+/RELEASE_NOTES.md
+/fuzz/target/
+/fuzz/corpus/
+/fuzz/artifacts/

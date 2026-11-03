@@ -10,7 +10,7 @@
 //! | [`location`] | IP + name geocoding ([`LocationService`]) |
 //! | [`api`] | One-call orchestration ([`load_report`]) returning a [`WeatherReport`] |
 //! | [`presentation`] | UI-agnostic view-model ([`ForecastView`]) + the [`tone_color_fn!`] macro |
-//! | [`format`] | UI-agnostic formatting helpers (units, wind, tones, local time) |
+//! | [`mod@format`] | UI-agnostic formatting helpers (units, wind, tones, local time) |
 //!
 //! This crate has NO GUI or TUI dependencies.
 //!
@@ -42,19 +42,19 @@ pub mod presentation;
 pub mod types;
 
 // Convenience re-exports — the public surface most consumers need.
-pub use api::{load_report, resolve_location, WeatherReport};
+pub use api::{WeatherReport, load_report, resolve_location};
 pub use forecaster::{
-    weather_description_from_wmo, wmo_code_to_condition, WeatherForecaster, WeatherProvider,
+    WeatherForecaster, WeatherProvider, weather_description_from_wmo, wmo_code_to_condition,
 };
 pub use format::{
-    condition_tone, convert_to_local, day_label, format_date_short, format_local_time, is_daytime,
-    pop_percent, temp_unit_label, uv_label, weekday_name, wind_direction_arrow,
-    wind_direction_label, wind_unit_label, ConditionTone,
+    ConditionTone, condition_tone, convert_to_local, day_label, format_date_short,
+    format_local_time, is_daytime, pop_percent, temp_unit_label, uv_label, weekday_name,
+    wind_direction_arrow, wind_direction_label, wind_unit_label,
 };
 pub use location::LocationService;
-pub use persistence::{load_settings, save_settings, settings_path, AppSettings};
+pub use persistence::{AppSettings, load_settings, save_settings, settings_path};
 pub use presentation::{
-    CurrentView, DayDetail, DayRow, ForecastView, HourRow, DAILY_LIMIT, HOURLY_LIMIT,
+    CurrentView, DAILY_LIMIT, DayDetail, DayRow, ForecastView, HOURLY_LIMIT, HourRow,
 };
 pub use types::{
     CurrentConditions, CurrentWeather, DailyForecast, DetailLevel, Forecast, HourlyForecast,

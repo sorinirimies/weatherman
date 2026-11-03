@@ -1,8 +1,8 @@
 //! View rendering for the Iced GUI.
 
 use crate::app::{App, Loaded, Message, Status};
-use crate::theme::{tone_color, ACCENT, MUTED};
-use iced::widget::{button, column, container, row, scrollable, text, text_input, Space};
+use crate::theme::{ACCENT, MUTED, tone_color};
+use iced::widget::{Space, button, column, container, row, scrollable, text, text_input};
 use iced::{Alignment, Element, Length};
 use weatherman_core::{AppSettings, DayDetail, DayRow, ForecastView, HourRow};
 

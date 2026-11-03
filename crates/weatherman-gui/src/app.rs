@@ -2,7 +2,7 @@
 
 use iced::Task;
 use weatherman_core::{
-    load_report, load_settings, save_settings, AppSettings, ForecastView, WeatherConfig,
+    AppSettings, ForecastView, WeatherConfig, load_report, load_settings, save_settings,
 };
 
 /// A successfully loaded, ready-to-render forecast.
@@ -42,6 +42,7 @@ pub enum Status {
 }
 
 /// The root application state.
+#[derive(Debug)]
 pub struct App {
     pub config: WeatherConfig,
     pub query: String,
@@ -121,10 +122,10 @@ impl App {
                 Task::none()
             }
             Message::SaveCurrentLocation => {
-                if let Some(loaded) = &self.loaded {
-                    if self.settings.add_location(&loaded.location_name) {
-                        let _ = save_settings(&self.settings);
-                    }
+                if let Some(loaded) = &self.loaded
+                    && self.settings.add_location(&loaded.location_name)
+                {
+                    let _ = save_settings(&self.settings);
                 }
                 Task::none()
             }

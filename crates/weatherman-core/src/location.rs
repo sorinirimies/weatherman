@@ -6,7 +6,7 @@ use std::time::Duration;
 use crate::types::Location;
 
 /// Handles location detection and queries
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct LocationService {
     client: Client,
 }
@@ -35,10 +35,10 @@ impl LocationService {
         for service_url in services {
             match self.client.get(service_url).send().await {
                 Ok(response) => {
-                    if let Ok(json) = response.json::<Value>().await {
-                        if let Some(location) = self.parse_location_from_json(json) {
-                            return Ok(location);
-                        }
+                    if let Ok(json) = response.json::<Value>().await
+                        && let Some(location) = self.parse_location_from_json(json)
+                    {
+                        return Ok(location);
                     }
                 }
                 Err(_) => continue,
@@ -151,12 +151,11 @@ impl LocationService {
             lat, lon
         );
 
-        if let Ok(response) = self.client.get(&url).send().await {
-            if let Ok(json) = response.json::<Value>().await {
-                if let Some(tz) = json["timezoneId"].as_str() {
-                    return Ok(tz.to_string());
-                }
-            }
+        if let Ok(response) = self.client.get(&url).send().await
+            && let Ok(json) = response.json::<Value>().await
+            && let Some(tz) = json["timezoneId"].as_str()
+        {
+            return Ok(tz.to_string());
         }
 
         // Fallback to a simple timezone estimation

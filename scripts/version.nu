@@ -2,12 +2,15 @@
 # Prints the current workspace version from Cargo.toml.
 # Usage: nu scripts/version.nu
 
-# Read workspace.package.version from a Cargo.toml (defaults to ./Cargo.toml).
-# Exposed so tests can point it at a fixture file.
-export def read_version [path: string = "Cargo.toml"]: nothing -> string {
-    open $path | get workspace.package.version
+export def read_version [] {
+    cargo_version (open Cargo.toml)
 }
 
-def main [] {
-    read_version | print
+# The version of a parsed Cargo.toml: `[workspace.package]` (a workspace) or
+# `[package]` (a single crate at the root).
+export def cargo_version [cargo: record]: nothing -> string {
+    let ws = $cargo | get -o workspace.package.version
+    if $ws != null { $ws } else { $cargo | get package.version }
 }
+
+def main [] { print (read_version) }

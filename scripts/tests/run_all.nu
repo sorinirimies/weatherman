@@ -1,18 +1,18 @@
 #!/usr/bin/env nu
-# ── weatherman · Run All Nushell Tests ─────────────────────────────────────
+# ── Weatherman · Run All Nushell Tests ────────────────────────────────────────
 #
 # Usage:
-#   nu scripts/tests/run_all.nu                   # run every test_*.nu file
-#   nu scripts/tests/run_all.nu --filter version  # only files matching "version"
+#   nu scripts/tests/run_all.nu          # run every test_*.nu file
+#   nu scripts/tests/run_all.nu --filter version   # only files matching "version"
 
 def main [--filter: string = ""] {
-    let green = (ansi green)
-    let red = (ansi red)
-    let bold = (ansi --escape {attr: b})
-    let cyan = (ansi cyan)
-    let reset = (ansi reset)
+    let green  = (ansi green)
+    let red    = (ansi red)
+    let bold   = (ansi --escape {attr: b})
+    let cyan   = (ansi cyan)
+    let reset  = (ansi reset)
 
-    print $"($bold)($cyan)── weatherman · Nushell Test Suite ──($reset)"
+    print $"($bold)($cyan)── Weatherman · Nushell Test Suite ──($reset)"
     print ""
 
     let test_dir = ($env.CURRENT_FILE | path dirname)
@@ -52,6 +52,7 @@ def main [--filter: string = ""] {
         print $"($bold)▶ ($name)($reset)"
         let res = (do { nu $f } | complete)
 
+        # Forward the test file's stdout so the user sees per-test results.
         if ($res.stdout | str trim) != "" {
             print $res.stdout
         }

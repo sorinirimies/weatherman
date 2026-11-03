@@ -1,6 +1,6 @@
 use weatherman_core::{
-    weather_description_from_wmo, wmo_code_to_condition, WeatherCondition, WeatherConfig,
-    WeatherForecaster,
+    WeatherCondition, WeatherConfig, WeatherForecaster, weather_description_from_wmo,
+    wmo_code_to_condition,
 };
 
 #[test]

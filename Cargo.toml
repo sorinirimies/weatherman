@@ -4,14 +4,16 @@ members = [
     "crates/weatherman-gui",
     "crates/weatherman-tui",
 ]
-resolver = "2"
+resolver = "3"
 
 [workspace.package]
 version    = "0.5.7"
-edition    = "2021"
+edition    = "2024"
+rust-version = "1.90"
 authors    = ["Sorin Albu-Irimies <mihaiirimies@gmail.com>"]
 license    = "MIT"
 repository = "https://github.com/sorinirimies/weatherman"
+homepage   = "https://github.com/sorinirimies/weatherman"
 
 # ── Shared dependency versions ─────────────────────────────────────────────────
 # Pin versions here once; each crate references them with `{ workspace = true }`
@@ -42,6 +44,15 @@ clap      = { version = "4", features = ["derive"] }
 
 # Internal crates
 weatherman-core = { path = "crates/weatherman-core", version = "0.5.7" }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+
+[workspace.lints.clippy]
+dbg_macro = "warn"
+todo = "warn"
+unwrap_used = "warn"
 
 [profile.dev]
 opt-level = 0

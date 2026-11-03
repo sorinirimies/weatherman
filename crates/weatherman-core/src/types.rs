@@ -69,8 +69,7 @@ impl WeatherCondition {
     ///
     /// This is different from FromStr trait implementation - it's a helper method
     /// that doesn't require Result handling
-    #[allow(clippy::should_implement_trait)]
-    #[allow(dead_code)]
+    #[allow(clippy::should_implement_trait)] // Infallible, unlike FromStr.
     pub fn from_str(condition: &str) -> Self {
         match condition.to_lowercase().as_str() {
             "clear" => WeatherCondition::Clear,
@@ -318,31 +317,4 @@ impl CurrentConditions for HourlyForecast {
     fn condition(&self) -> WeatherCondition {
         self.main_condition
     }
-}
-
-/// Represents air quality data
-#[allow(dead_code)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AirQuality {
-    pub aqi: u8,    // 1-5 scale (1: Good, 2: Fair, 3: Moderate, 4: Poor, 5: Very Poor)
-    pub co: f64,    // Carbon monoxide (μg/m3)
-    pub no: f64,    // Nitrogen monoxide (μg/m3)
-    pub no2: f64,   // Nitrogen dioxide (μg/m3)
-    pub o3: f64,    // Ozone (μg/m3)
-    pub so2: f64,   // Sulphur dioxide (μg/m3)
-    pub pm2_5: f64, // Fine particles (μg/m3)
-    pub pm10: f64,  // Coarse particles (μg/m3)
-    pub nh3: f64,   // Ammonia (μg/m3)
-}
-
-/// Represents alert information
-#[allow(dead_code)]
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WeatherAlert {
-    pub sender: String,
-    pub event: String,
-    pub start: DateTime<Utc>,
-    pub end: DateTime<Utc>,
-    pub description: String,
-    pub tags: Vec<String>,
 }

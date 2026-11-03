@@ -31,7 +31,6 @@ urlencoding = "2.1"
 dirs        = "7"
 strum       = { version = "0.28", features = ["derive"] }
 strum_macros = "0.28"
-futures     = "0.3"
 
 # GUI (Iced)
 iced = { version = "0.14", features = ["tokio", "canvas", "advanced"] }
@@ -48,6 +47,8 @@ weatherman-core = { path = "crates/weatherman-core", version = "0.5.7" }
 [workspace.lints.rust]
 unsafe_code = "forbid"
 missing_debug_implementations = "warn"
+# `pub` only for what another crate uses; then dead_code finds the rest.
+unreachable_pub = "warn"
 
 [workspace.lints.clippy]
 dbg_macro = "warn"

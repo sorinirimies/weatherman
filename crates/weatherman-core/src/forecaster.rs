@@ -2,7 +2,6 @@ use anyhow::{Result, anyhow};
 use chrono::{DateTime, Duration, NaiveDateTime, Timelike, Utc};
 use reqwest::Client;
 use serde_json::Value;
-use std::collections::HashMap;
 use std::time::Duration as StdDuration;
 
 use crate::types::{
@@ -60,22 +59,10 @@ impl WeatherProvider for WeatherForecaster {
 }
 
 /// Handles weather data retrieval and processing
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct WeatherForecaster {
     client: Client,
     config: WeatherConfig,
-    #[allow(dead_code)]
-    api_keys: HashMap<String, String>,
-}
-
-// Manual: the API key values must never reach a log.
-impl std::fmt::Debug for WeatherForecaster {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("WeatherForecaster")
-            .field("config", &self.config)
-            .field("api_keys", &self.api_keys.keys().collect::<Vec<_>>())
-            .finish_non_exhaustive()
-    }
 }
 
 impl WeatherForecaster {
@@ -86,13 +73,7 @@ impl WeatherForecaster {
             .build()
             .unwrap_or_default();
 
-        let api_keys = HashMap::new();
-
-        Self {
-            client,
-            config,
-            api_keys,
-        }
+        Self { client, config }
     }
 
     /// Get current weather for a location
@@ -560,16 +541,6 @@ pub fn weather_description_from_wmo(code: u32, is_day: bool) -> WeatherDescripti
 mod tests {
     use super::parse_openmeteo_time;
     use chrono::Timelike;
-
-    #[test]
-    fn debug_shows_api_key_names_but_never_values() {
-        let mut f = super::WeatherForecaster::new(super::WeatherConfig::default());
-        f.api_keys
-            .insert("openweather".to_string(), "s3cr3t-value".to_string());
-        let shown = format!("{f:?}");
-        assert!(shown.contains("openweather"));
-        assert!(!shown.contains("s3cr3t-value"));
-    }
 
     #[test]
     fn parses_rfc3339_with_offset() {

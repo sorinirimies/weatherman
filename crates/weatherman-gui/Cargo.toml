@@ -22,9 +22,6 @@ path = "src/lib.rs"
 
 [dependencies]
 weatherman-core = { workspace = true }
-anyhow  = { workspace = true }
-chrono  = { workspace = true }
-tokio   = { workspace = true }
 iced    = { workspace = true }
 
 [lints]

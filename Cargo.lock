@@ -5403,10 +5403,7 @@ dependencies = [
 name = "weatherman"
 version = "0.5.7"
 dependencies = [
- "anyhow",
- "chrono",
  "iced",
- "tokio",
  "weatherman-core",
 ]
 

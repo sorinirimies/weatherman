@@ -187,6 +187,20 @@ impl DayRow {
     }
 }
 
+/// Round `t` up to the next full hour (unchanged if already on the hour).
+fn next_full_hour(t: chrono::DateTime<chrono::Utc>) -> chrono::DateTime<chrono::Utc> {
+    let floored = t
+        .with_minute(0)
+        .and_then(|d| d.with_second(0))
+        .and_then(|d| d.with_nanosecond(0))
+        .unwrap_or(t);
+    if floored == t {
+        t
+    } else {
+        floored + chrono::Duration::hours(1)
+    }
+}
+
 /// The full, ready-to-render forecast for one location.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ForecastView {
@@ -212,8 +226,15 @@ impl ForecastView {
                 .map(|h| CurrentView::build(h, location, config)),
         };
 
+        // The provider returns hourly data starting at local midnight, so drop
+        // everything before the next full hour after "now". When the current
+        // time is exactly on the hour, that hour itself is kept. Without a
+        // current observation there is no reference time, so nothing is dropped.
+        let start = current.map(|c| next_full_hour(c.observed_at()));
+
         let hours = hourly
             .iter()
+            .filter(|h| start.is_none_or(|s| h.timestamp >= s))
             .take(HOURLY_LIMIT)
             .map(|h| HourRow::build(h, location, config))
             .collect();

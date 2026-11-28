@@ -188,3 +188,21 @@ fn tone_color_fn_macro_maps_all_tones() {
     assert_eq!(tone_char(ConditionTone::Fog), 'F');
     assert_eq!(tone_char(ConditionTone::Neutral), '-');
 }
+
+#[test]
+fn hours_start_at_next_full_hour_after_current() {
+    let cfg = WeatherConfig::default();
+    let hours = hourly(72);
+    // 2024-01-01 07:30 -> strip should start at 08:00.
+    let mut now = hours[7].clone();
+    now.timestamp = Utc.with_ymd_and_hms(2024, 1, 1, 7, 30, 0).unwrap();
+    let view = ForecastView::build(Some(&now), &hours, &daily(7), &location(), &cfg);
+    assert_eq!(view.hours.len(), 24);
+    assert_eq!(view.hours[0].time, "08:00");
+
+    // Exactly on the hour -> that hour is kept.
+    let mut now = hours[7].clone();
+    now.timestamp = Utc.with_ymd_and_hms(2024, 1, 1, 7, 0, 0).unwrap();
+    let view = ForecastView::build(Some(&now), &hours, &daily(7), &location(), &cfg);
+    assert_eq!(view.hours[0].time, "07:00");
+}
